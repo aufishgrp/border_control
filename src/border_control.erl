@@ -8,8 +8,6 @@
 
 -spec parse_transform(forms(), options()) -> forms().
 parse_transform(Forms, _) ->
-	io:format("FORMS\n~p\n", [Forms]),
-
 	Attributes   = get_forms(attribute, Forms),
 	Functions    = get_forms(function,  Forms),
 	[{eof, EOF}] = get_forms(eof,       Forms),
@@ -593,7 +591,7 @@ forms_from_state(#{
 	lists:keysort(
 		2,
 		lists:flatten(
-			[Attributes, Functions, Generated, {eof, EOF}]
+			[lists:reverse(Attributes), Functions, Generated, {eof, EOF}]
 		)
 	).
 
