@@ -3,7 +3,6 @@
 -export([
 	validate/3,
 	from_json/3,
-	to_json/2,
 	from_map/3,
 	from_proplist/3,
 	to_json/2,
@@ -52,7 +51,7 @@ from_json_erl({record, {RecordType, _}}, RecordInfos, Term) when is_map(Term) ->
 
 	lists:foldl(
 		fun(KAtom, Acc0) ->
-			KKey = lKeyConvertFun(KAtom),
+			KKey = KeyConvertFun(KAtom),
 			{Ordinal, _, Type} = lists:keyfind(KAtom, 2, RecordInfo),
 			case maps:get(KKey, Term, undefined) of
 				undefined ->
