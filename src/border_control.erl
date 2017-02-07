@@ -356,9 +356,9 @@ generate_from_map1(Record, Line, _) ->
 						{atom,Line,from_map}
 					},
 					[
-						{var,Line,'Value'},
+						erl_parse:abstract({record, {Record, []}}, [{line, Line}]),
 						{call,Line,{atom,Line,get_record_infos},[]},
-						{record,Line,Record,[]}
+						{var,Line,'Value'}
 					]
 				}
 			]
@@ -395,9 +395,9 @@ generate_from_proplist1(Record, Line, _) ->
 						{atom,Line,from_proplist}
 					},
 					[
-						{var,Line,'Value'},
+						erl_parse:abstract({record, {Record, []}}, [{line, Line}]),
 						{call,Line,{atom,Line,get_record_infos},[]},
-						{record,Line,Record,[]}
+						{var,Line,'Value'}
 					]
 				}
 			]
@@ -662,7 +662,6 @@ get_record_info(Forms) ->
 parse_rec_spec({Record, FieldInfo}) ->
 	{_, Properties} = lists:foldl(
 		fun(FieldSpec, {Index, Acc}) ->
-			io:format("Parse - ~p\n", [FieldSpec]),
 			{Field, Types} = parse_record_field(FieldSpec),
 			{Index+1, [{Index, Field, Types}|Acc]}
 		end,
