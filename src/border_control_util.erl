@@ -5,9 +5,11 @@
 	from_json/3,
 	from_map/3,
 	from_proplist/3,
+	from_protobuf/4,
 	to_json/2,
 	to_map/2,
-	to_proplist/2
+	to_proplist/2,
+	to_protobuf/3
 ]).
 
 -spec validate(term(), {record,{atom(),list()}} | {atom(), list()}, map()) -> ok.
@@ -24,6 +26,9 @@ from_map(Type, RecordInfos, Term) when is_map(Term) ->
 
 from_proplist(Type, RecordInfos, List) when is_list(List) ->
 	from_json_erl(Type, RecordInfos, maps:from_list(List)).
+
+from_protobuf(ProtoModule, {record, {RecordType, _}}, _, Term) when is_binary(Term) ->
+	ProtoModule:decode_msg(Term, RecordType).
 
 from_json_erl({record, {RecordType, _}}, RecordInfos, Term) when is_map(Term) ->
 	RecordInfo = maps:get(RecordType, RecordInfos),
@@ -88,6 +93,9 @@ to_map(RecordInfos, Term) ->
 
 to_proplist(RecordInfos, Term) ->
 	maps:to_list(from_erl_json(RecordInfos, Term)).
+
+to_protobuf(ProtoModule, _, Term) ->
+	ProtoModule:encode_msg(Term).
 
 from_erl_json(RecordInfos, Term) when is_tuple(Term) ->
 	case maps:get(element(1, Term), RecordInfos, undefined) of

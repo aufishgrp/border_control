@@ -49,8 +49,13 @@ do_parse_transform(
 	},
 	do_parse_transform(JsonRecs, State1).
 
--define(generate(A,B,C), {fun A/3, B, C}).
+-define(generate(A,B,C), {fun A/4, B, C}).
+generate({Record, Options}, EOExports, Line, RecordInfo) ->
+	generate(Record, Options, EOExports, Line, RecordInfo);
 generate(Record, EOExports, Line, RecordInfo) ->
+	generate(Record, #{}, EOExports, Line, RecordInfo).
+
+generate(Record, Options, EOExports, Line, RecordInfo) ->
 	Generate = [
 		?generate(generate_get_record_infos0, get_record_infos, 0),
 		?generate(generate_new0, new, 0),
@@ -60,17 +65,20 @@ generate(Record, EOExports, Line, RecordInfo) ->
 		?generate(generate_from_json1,     from_json,     1),
 		?generate(generate_from_map1,      from_map,      1),
 		?generate(generate_from_proplist1, from_proplist, 1),
+		?generate(generate_from_protobuf1, from_protobuf, 1),
 		?generate(generate_to_json1,       to_json,       1),
 		?generate(generate_to_map1,        to_map,        1),
 		?generate(generate_to_proplist1,   to_proplist,   1),
+		?generate(generate_to_protobuf1,   to_protobuf,   1),
 		?generate(generate_to_src1,        to_src,        1)
 	],
-	do_generate(Record, EOExports, Line, RecordInfo, Generate, []).
+	do_generate(Record, Options, EOExports, Line, RecordInfo, Generate, []).
 
-do_generate(_, _, _, _, [], Acc) ->
+do_generate(_, _, _, _, _, [], Acc) ->
 	Acc;
 do_generate(
 	Record,
+	Options,
 	EOExports,
 	Line,
 	RecordInfo,
@@ -86,27 +94,27 @@ do_generate(
 		{Fun, Name, Arity} ->
 			[
 				{attribute, EOExports, export, [{Name, Arity}]},
-				Fun(Record, Line, RecordInfo)|
+				Fun(Record, Options, Line, RecordInfo)|
 				Acc0
 			]
 	end,	
-	do_generate(Record, EOExports, Line+1, RecordInfo, Generate, Acc1).
+	do_generate(Record, Options, EOExports, Line+1, RecordInfo, Generate, Acc1).
 
-generate_get_record_infos0(_, Line, RecordInfos) ->
+generate_get_record_infos0(_, _, Line, RecordInfos) ->
 	{function,Line,get_record_infos,0,[
 		{clause,Line,[],[],[
 			erl_parse:abstract(RecordInfos, [{line, Line}])
 		]}
 	]}.
 
-generate_new0(Record, Line, _) ->
+generate_new0(Record, _, Line, _) ->
 	{function,Line,new,0,[
 		{clause,Line,[],[],[
 			{record,Line,Record,[]}
 		]}
 	]}.
 
-generate_new1(_, Line, _) ->
+generate_new1(_, _, Line, _) ->
 	 Clauses = [
 	 	{
 			clause,
@@ -192,7 +200,7 @@ generate_new1(_, Line, _) ->
 	 ],
 	 {function, Line, new, 1, Clauses}.
 
-generate_get2(Record, Line, RecordInfos) ->
+generate_get2(Record, _, Line, RecordInfos) ->
 	RecordInfo = maps:get(Record, RecordInfos),
 	Clauses = lists:map(
 		fun({_,Field,_}) ->
@@ -212,7 +220,7 @@ generate_get2_clause(Line, Record, Field) ->
 		]
 	}.
 
-generate_set3(Record, Line, RecordInfos) ->
+generate_set3(Record, _, Line, RecordInfos) ->
 	RecordInfo = maps:get(Record, RecordInfos),
 	Clauses = lists:foldl(
 		fun({_, Field, Type}, Acc) ->
@@ -288,7 +296,7 @@ generate_set3_clause(Line, Record, Field, Type, _) ->
 		]
 	}.
 
-generate_from_json1(Record, Line, _) ->
+generate_from_json1(Record, _, Line, _) ->
 	Clauses = [
 		{
 			clause,
@@ -327,7 +335,7 @@ generate_from_json1(Record, Line, _) ->
 	],
 	{function,Line,from_json,1,Clauses}.
 
-generate_from_map1(Record, Line, _) ->
+generate_from_map1(Record, _, Line, _) ->
 	Clauses = [
 		{
 			clause,
@@ -366,7 +374,7 @@ generate_from_map1(Record, Line, _) ->
 	],
 	{function,Line,from_map,1,Clauses}.
 
-generate_from_proplist1(Record, Line, _) ->
+generate_from_proplist1(Record, _, Line, _) ->
 	Clauses = [
 		{
 			clause,
@@ -405,7 +413,47 @@ generate_from_proplist1(Record, Line, _) ->
 	],
 	{function,Line,from_proplist,1,Clauses}.
 
-generate_to_json1(Record, Line, RecordInfos) ->
+generate_from_protobuf1(Record, Options, Line, _) ->
+	Clauses = [
+		{
+			clause,
+			Line,
+			[{var,Line,'Value'}],
+			[
+				[
+					{
+						call,
+						Line,
+						{atom,Line,is_binary},
+						[
+							{var,Line,'Value'}
+						]
+					}
+				]
+			],
+			[
+				{
+					call,
+					Line,
+					{
+						remote,
+						Line,
+						{atom,Line,border_control_util},
+						{atom,Line,from_protobuf}
+					},
+					[
+						{atom,Line,maps:get(protobuf, Options)},
+						erl_parse:abstract({record, {Record, []}}, [{line, Line}]),
+						{call,Line,{atom,Line,get_record_infos},[]},
+						{var,Line,'Value'}
+					]
+				}
+			]
+		}
+	],
+	{function,Line,from_protobuf,1,Clauses}.
+
+generate_to_json1(Record, _, Line, RecordInfos) ->
 	TupleLength = length(maps:get(Record, RecordInfos)) + 1,
 	Clauses = [
 		{
@@ -446,7 +494,7 @@ generate_to_json1(Record, Line, RecordInfos) ->
 	],
 	{function,Line,to_json,1,Clauses}.
 
-generate_to_map1(Record, Line, RecordInfos) ->
+generate_to_map1(Record, _, Line, RecordInfos) ->
 	TupleLength = length(maps:get(Record, RecordInfos)) + 1,
 	Clauses = [
 		{
@@ -487,7 +535,7 @@ generate_to_map1(Record, Line, RecordInfos) ->
 	],
 	{function,Line,to_map,1,Clauses}.
 
-generate_to_proplist1(Record, Line, RecordInfos) ->
+generate_to_proplist1(Record, _, Line, RecordInfos) ->
 	TupleLength = length(maps:get(Record, RecordInfos)) + 1,
 	Clauses = [
 		{
@@ -528,7 +576,49 @@ generate_to_proplist1(Record, Line, RecordInfos) ->
 	],
 	{function,Line,to_proplist,1,Clauses}.
 
-generate_to_src1(Record, Line, _) ->
+generate_to_protobuf1(Record, Options, Line, RecordInfos) ->
+	TupleLength = length(maps:get(Record, RecordInfos)) + 1,
+	Clauses = [
+		{
+			clause,
+			Line,
+			[{var,Line,'Value'}],
+			[
+				[
+					{
+						call,
+						Line,
+						{atom,Line,is_record},
+						[
+							{var,Line,'Value'},
+							{atom,Line,Record},
+							{integer,Line,TupleLength}
+						]
+					}
+				]
+			],
+			[
+				{
+					call,
+					Line,
+					{
+						remote,
+						Line,
+						{atom,Line,border_control_util},
+						{atom,Line,to_protobuf}
+					},
+					[
+						{atom,Line,maps:get(protobuf, Options)},
+						{call,Line,{atom,Line,get_record_infos},[]},
+						{var,Line,'Value'}
+					]
+				}
+			]
+		}
+	],
+	{function,Line,to_protobuf,1,Clauses}.
+
+generate_to_src1(Record, _, Line, _) ->
 	{
 		function,
 		Line,
@@ -588,10 +678,10 @@ forms_from_state(#{
 	eof        := EOF,
 	generated  := Generated
 }) ->
-	lists:keysort(
+	lists:reverse(Attributes) ++ lists:keysort(
 		2,
 		lists:flatten(
-			[lists:reverse(Attributes), Functions, Generated, {eof, EOF}]
+			[Functions, Generated, {eof, EOF}]
 		)
 	).
 
