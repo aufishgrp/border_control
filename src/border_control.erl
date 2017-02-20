@@ -773,6 +773,8 @@ parse_type({Type, _, Value}) ->
 	{Type, [Value]};
 parse_type({_, _, record, [{atom,_,Record}]}) ->
 	{record, {Record, []}};
+parse_type({_, _, Type, any}) ->
+	{Type, [any]};
 parse_type({_, _, Type, Parameters}) ->
 	{Type, [parse_type(P) || P <- Parameters]}.
 
