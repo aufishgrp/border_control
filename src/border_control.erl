@@ -442,7 +442,7 @@ generate_from_protobuf1(Record, Options, Line, _) ->
 						{atom,Line,from_protobuf}
 					},
 					[
-						{atom,Line,maps:get(protobuf, Options)},
+						{atom,Line,maps:get(protobuf, Options, undefined)},
 						erl_parse:abstract({record, {Record, []}}, [{line, Line}]),
 						{call,Line,{atom,Line,get_record_infos},[]},
 						{var,Line,'Value'}
@@ -608,7 +608,7 @@ generate_to_protobuf1(Record, Options, Line, RecordInfos) ->
 						{atom,Line,to_protobuf}
 					},
 					[
-						{atom,Line,maps:get(protobuf, Options)},
+						{atom,Line,maps:get(protobuf, Options, undefined)},
 						{call,Line,{atom,Line,get_record_infos},[]},
 						{var,Line,'Value'}
 					]
