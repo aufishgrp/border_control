@@ -6,9 +6,6 @@
 %% Public API
 %%=============================================================================
 parse_transform(Forms, Options) ->
-
-	io:format("Options ~p\n", [Options]),
-
 	lists:foldl(fun(Form, Acc) ->
 	                maybe_do_transform(Options, Form, Acc)
 	            end,
@@ -65,7 +62,7 @@ generate_beam(CompileOptions, Sourcefile) ->
 	Options1 = proplists:get_value(options, ?MODULE:module_info(compile)),
 	Options2 = lists:keystore(source, 1, Options1, {source, Sourcefile}),
 	Options3 = lists:keystore(outdir, 1, Options2, Outdir),
-	io:format("Compiling ~p ~p ~p\n", [Sourcefile, Options3, c:c(Sourcefile, Options3)]).
+	c:c(Sourcefile, Options3).
 
 format_error({_Cat, Error}) ->
 	Error.
@@ -135,7 +132,7 @@ tokens_to_abstact([Fun | Funs], Tokens) ->
 		_ -> tokens_to_abstact(Funs, Tokens)
 	end.
 
-expand_includes(Module, [], Expanded) -> Expanded;
+expand_includes(_, [], Expanded) -> Expanded;
 expand_includes(Module, [{attribute, _, include, Filename}|Forms], Expanded) ->
 	expand_includes(Module, Forms, Expanded ++ forms_from_file(Module, findfile(Module, Filename)));
 expand_includes(Module, [Form|Forms], Expanded) ->
